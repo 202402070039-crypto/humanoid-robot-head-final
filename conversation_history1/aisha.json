@@ -1,0 +1,751 @@
+{
+    "person_name": "aisha",
+    "language": "Unknown",
+    "saved_at": "2026-09-04 10:38:24",
+    "conversation": [
+        {
+            "role": "assistant",
+            "content": "Yes, how can I help you?"
+        },
+        {
+            "role": "user",
+            "content": "Hey Master, do you recognize me?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, I recognize you, Aisha."
+        },
+        {
+            "role": "user",
+            "content": "I'm going to go to the next video."
+        },
+        {
+            "role": "assistant",
+            "content": "Got it, Aisha. Let me know if you need anything before you switch videos."
+        },
+        {
+            "role": "user",
+            "content": "."
+        },
+        {
+            "role": "assistant",
+            "content": "Hello! How can I help you today?"
+        },
+        {
+            "role": "user",
+            "content": "Hey Master, what are you doing?"
+        },
+        {
+            "role": "assistant",
+            "content": "Hi Aisha! I’m just here, ready to help you with whatever you need."
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, how can I help you?"
+        },
+        {
+            "role": "user",
+            "content": "Hey Master, do you recognize me?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, I recognize you, Aisha."
+        },
+        {
+            "role": "user",
+            "content": "I'm going to go to the next video."
+        },
+        {
+            "role": "assistant",
+            "content": "Got it, Aisha. Let me know if you need anything before you switch videos."
+        },
+        {
+            "role": "user",
+            "content": "."
+        },
+        {
+            "role": "assistant",
+            "content": "Hello! How can I help you today?"
+        },
+        {
+            "role": "user",
+            "content": "Hey Master, what are you doing?"
+        },
+        {
+            "role": "assistant",
+            "content": "Hi Aisha! I’m just here, ready to help you with whatever you need."
+        },
+        {
+            "role": "user",
+            "content": "हेई मास्टर क्या तुम में को पहचानते हो जो जो जो जो जो"
+        },
+        {
+            "role": "assistant",
+            "content": "हाँ, मैं आपको पहचानता हूँ, पियुषा।"
+        },
+        {
+            "role": "user",
+            "content": "В YouTube я не буду делать."
+        },
+        {
+            "role": "assistant",
+            "content": "Понятно, Аиша. Если понадобится помощь, дайте знать."
+        },
+        {
+            "role": "user",
+            "content": "Hei, mástu ekki að þú múlið í dæntinni?"
+        },
+        {
+            "role": "assistant",
+            "content": "Aisha, ég er hér til að hjálpa þér með dæmin. Hvað þarftu aðstoð við?"
+        },
+        {
+            "role": "user",
+            "content": "Hey Master!"
+        },
+        {
+            "role": "assistant",
+            "content": "Hey Aisha! How can I help you today?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, how can I help you?"
+        },
+        {
+            "role": "user",
+            "content": "Hey Master, do you recognize me?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, I recognize you, Aisha."
+        },
+        {
+            "role": "user",
+            "content": "I'm going to go to the next video."
+        },
+        {
+            "role": "assistant",
+            "content": "Got it, Aisha. Let me know if you need anything before you switch videos."
+        },
+        {
+            "role": "user",
+            "content": "."
+        },
+        {
+            "role": "assistant",
+            "content": "Hello! How can I help you today?"
+        },
+        {
+            "role": "user",
+            "content": "Hey Master, what are you doing?"
+        },
+        {
+            "role": "assistant",
+            "content": "Hi Aisha! I’m just here, ready to help you with whatever you need."
+        },
+        {
+            "role": "user",
+            "content": "हेई मास्टर क्या तुम में को पहचानते हो जो जो जो जो जो"
+        },
+        {
+            "role": "assistant",
+            "content": "हाँ, मैं आपको पहचानता हूँ, पियुषा।"
+        },
+        {
+            "role": "user",
+            "content": "В YouTube я не буду делать."
+        },
+        {
+            "role": "assistant",
+            "content": "Понятно, Аиша. Если понадобится помощь, дайте знать."
+        },
+        {
+            "role": "user",
+            "content": "Hei, mástu ekki að þú múlið í dæntinni?"
+        },
+        {
+            "role": "assistant",
+            "content": "Aisha, ég er hér til að hjálpa þér með dæmin. Hvað þarftu aðstoð við?"
+        },
+        {
+            "role": "user",
+            "content": "Hey Master!"
+        },
+        {
+            "role": "assistant",
+            "content": "Hey Aisha! How can I help you today?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, how can I help you?"
+        },
+        {
+            "role": "user",
+            "content": "¿Qué más?"
+        },
+        {
+            "role": "assistant",
+            "content": "Aisha, ¿en qué más puedo ayudarte hoy?"
+        },
+        {
+            "role": "user",
+            "content": "Hey Master!"
+        },
+        {
+            "role": "assistant",
+            "content": "Hey Aisha! How can I help you today?"
+        },
+        {
+            "role": "user",
+            "content": "Do you recognize me?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, I recognize you, Aisha."
+        },
+        {
+            "role": "user",
+            "content": "А я с кучу кучу написал."
+        },
+        {
+            "role": "assistant",
+            "content": "Понятно, Aisha. Что именно ты написал?"
+        },
+        {
+            "role": "user",
+            "content": "Hey Master, do you recognize me?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, I recognize you, Aisha."
+        },
+        {
+            "role": "user",
+            "content": "What do you know, Master?"
+        },
+        {
+            "role": "assistant",
+            "content": "I can help with questions, give information, and assist with tasks you need. Just let me know what you’d like to do, Aisha."
+        },
+        {
+            "role": "user",
+            "content": "I asked you a meds question"
+        },
+        {
+            "role": "assistant",
+            "content": "Sure thing! What medication question do you have?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, how can I help you?"
+        },
+        {
+            "role": "user",
+            "content": "¿Qué más?"
+        },
+        {
+            "role": "assistant",
+            "content": "Aisha, ¿en qué más puedo ayudarte hoy?"
+        },
+        {
+            "role": "user",
+            "content": "Hey Master!"
+        },
+        {
+            "role": "assistant",
+            "content": "Hey Aisha! How can I help you today?"
+        },
+        {
+            "role": "user",
+            "content": "Do you recognize me?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, I recognize you, Aisha."
+        },
+        {
+            "role": "user",
+            "content": "А я с кучу кучу написал."
+        },
+        {
+            "role": "assistant",
+            "content": "Понятно, Aisha. Что именно ты написал?"
+        },
+        {
+            "role": "user",
+            "content": "Hey Master, do you recognize me?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, I recognize you, Aisha."
+        },
+        {
+            "role": "user",
+            "content": "What do you know, Master?"
+        },
+        {
+            "role": "assistant",
+            "content": "I can help with questions, give information, and assist with tasks you need. Just let me know what you’d like to do, Aisha."
+        },
+        {
+            "role": "user",
+            "content": "I asked you a meds question"
+        },
+        {
+            "role": "assistant",
+            "content": "Sure thing! What medication question do you have?"
+        },
+        {
+            "role": "user",
+            "content": "I asked you an addition question, what was it?"
+        },
+        {
+            "role": "assistant",
+            "content": "I’m not sure which addition question you’re referring to. Could you tell me the numbers again?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, how can I help you?"
+        },
+        {
+            "role": "user",
+            "content": "What can you do?"
+        },
+        {
+            "role": "assistant",
+            "content": "Hi Piyusha! I’m Master, your friendly robot head. I can chat with you, answer questions, help you find information, keep an eye on your surroundings, and respond to what you say or do. If you need anything, just let me know!"
+        },
+        {
+            "role": "user",
+            "content": "तूम क्या कर सकते हो"
+        },
+        {
+            "role": "assistant",
+            "content": "मैं आपकी बात सुन सकता हूँ, सवालों के जवाब दे सकता हूँ, जानकारी खोजने में मदद कर सकता हूँ, और आपके आस-पास की स्थिति पर नजर रख सकता हूँ। बस बताइए आपको क्या चाहिए!"
+        },
+        {
+            "role": "user",
+            "content": "તુલા કાય કાય એતો?"
+        },
+        {
+            "role": "assistant",
+            "content": "હાય પિયુષા, “તુલા કાય કાય એતો?” નો અર્થ થાય છે “શું ચાલી રહ્યું છે?”"
+        },
+        {
+            "role": "user",
+            "content": "तुज़र नाओ काए आहें"
+        },
+        {
+            "role": "assistant",
+            "content": "माझे नाव मास्टर आहे."
+        },
+        {
+            "role": "user",
+            "content": "."
+        },
+        {
+            "role": "assistant",
+            "content": "काही मदत हवी असेल तर मला सांगा!"
+        },
+        {
+            "role": "user",
+            "content": "Am I standing at right or left?"
+        },
+        {
+            "role": "assistant",
+            "content": "You are standing to my left."
+        },
+        {
+            "role": "user",
+            "content": "."
+        },
+        {
+            "role": "assistant",
+            "content": "Sure, Piyusha. How can I help?"
+        },
+        {
+            "role": "user",
+            "content": "Am I standing at right or left?"
+        },
+        {
+            "role": "assistant",
+            "content": "You're standing to my right, Piyusha."
+        },
+        {
+            "role": "user",
+            "content": "Aisha Freemiana Do Yuri"
+        },
+        {
+            "role": "assistant",
+            "content": "Could you clarify what you’d like me to do with “Aisha Freemiana Do Yuri”?"
+        },
+        {
+            "role": "user",
+            "content": "How many people are there in the frame?"
+        },
+        {
+            "role": "assistant",
+            "content": "There's just one person in the frame."
+        },
+        {
+            "role": "user",
+            "content": "Gracias."
+        },
+        {
+            "role": "assistant",
+            "content": "¡De nada!"
+        },
+        {
+            "role": "user",
+            "content": "Obrigado."
+        },
+        {
+            "role": "assistant",
+            "content": "De nada!"
+        },
+        {
+            "role": "user",
+            "content": "Hey Master, do you recognize me?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, I recognize you, Aisha."
+        },
+        {
+            "role": "user",
+            "content": "."
+        },
+        {
+            "role": "assistant",
+            "content": "Hello Aisha. How can I help?"
+        },
+        {
+            "role": "user",
+            "content": "Возвращение"
+        },
+        {
+            "role": "assistant",
+            "content": "Понятно. Чем могу помочь?"
+        },
+        {
+            "role": "user",
+            "content": "."
+        },
+        {
+            "role": "assistant",
+            "content": "Sure thing, Aisha. Let me know what you'd like to do next."
+        },
+        {
+            "role": "user",
+            "content": "Hey Master, what can you do for me?"
+        },
+        {
+            "role": "assistant",
+            "content": "I can chat with you, answer questions, help you find information, keep an eye on your surroundings, and respond to what you say or do. Just let me know what you need!"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, how can I help you?"
+        },
+        {
+            "role": "user",
+            "content": "Do you recognize me?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, I recognize you as Piyusha."
+        },
+        {
+            "role": "user",
+            "content": "Can you tell me I am standing where?"
+        },
+        {
+            "role": "assistant",
+            "content": "You’re standing to my left, Piyusha."
+        },
+        {
+            "role": "user",
+            "content": "Am I..."
+        },
+        {
+            "role": "assistant",
+            "content": "I’m not sure what you’re asking. Could you finish your question?"
+        },
+        {
+            "role": "user",
+            "content": "Gracias. Gracias. Gracias. Gracias."
+        },
+        {
+            "role": "assistant",
+            "content": "¡De nada! Si necesitas algo más, avísame."
+        },
+        {
+            "role": "user",
+            "content": "आप क्या क्या कर सकते हो"
+        },
+        {
+            "role": "assistant",
+            "content": "मैं आपकी बात सुन सकता हूँ, सवालों का जवाब दे सकता हूँ, जानकारी खोजने में मदद कर सकता हूँ, आपके आसपास के माहौल पर नजर रख सकता हूँ, और आपकी बात या क्रिया पर प्रतिक्रिया दे सकता हूँ."
+        },
+        {
+            "role": "user",
+            "content": "क्या आप हमें देख सकते हों?"
+        },
+        {
+            "role": "assistant",
+            "content": "हाँ, मैं आप दोनों को देख सकता हूँ। आप मेरे बाईं ओर खड़े हैं।"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, how can I help you?"
+        },
+        {
+            "role": "user",
+            "content": "Do you recognize me?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, I recognize you as Piyusha."
+        },
+        {
+            "role": "user",
+            "content": "Can you tell me I am standing where?"
+        },
+        {
+            "role": "assistant",
+            "content": "You’re standing to my left, Piyusha."
+        },
+        {
+            "role": "user",
+            "content": "Am I..."
+        },
+        {
+            "role": "assistant",
+            "content": "I’m not sure what you’re asking. Could you finish your question?"
+        },
+        {
+            "role": "user",
+            "content": "Gracias. Gracias. Gracias. Gracias."
+        },
+        {
+            "role": "assistant",
+            "content": "¡De nada! Si necesitas algo más, avísame."
+        },
+        {
+            "role": "user",
+            "content": "आप क्या क्या कर सकते हो"
+        },
+        {
+            "role": "assistant",
+            "content": "मैं आपकी बात सुन सकता हूँ, सवालों का जवाब दे सकता हूँ, जानकारी खोजने में मदद कर सकता हूँ, आपके आसपास के माहौल पर नजर रख सकता हूँ, और आपकी बात या क्रिया पर प्रतिक्रिया दे सकता हूँ."
+        },
+        {
+            "role": "user",
+            "content": "क्या आप हमें देख सकते हों?"
+        },
+        {
+            "role": "assistant",
+            "content": "हाँ, मैं आप दोनों को देख सकता हूँ। आप मेरे बाईं ओर खड़े हैं।"
+        },
+        {
+            "role": "user",
+            "content": "How many people are standing right now here?"
+        },
+        {
+            "role": "assistant",
+            "content": "There are two people standing right now."
+        },
+        {
+            "role": "user",
+            "content": "Can you tell me who is the second person?"
+        },
+        {
+            "role": "assistant",
+            "content": "I can see two people here. I’ve identified the first one as Aisha, but I don’t have a name for the second person."
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, how can I help you?"
+        },
+        {
+            "role": "user",
+            "content": "Do you recognize me?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, I recognize you as Piyusha."
+        },
+        {
+            "role": "user",
+            "content": "Can you tell me I am standing where?"
+        },
+        {
+            "role": "assistant",
+            "content": "You’re standing to my left, Piyusha."
+        },
+        {
+            "role": "user",
+            "content": "Am I..."
+        },
+        {
+            "role": "assistant",
+            "content": "I’m not sure what you’re asking. Could you finish your question?"
+        },
+        {
+            "role": "user",
+            "content": "Gracias. Gracias. Gracias. Gracias."
+        },
+        {
+            "role": "assistant",
+            "content": "¡De nada! Si necesitas algo más, avísame."
+        },
+        {
+            "role": "user",
+            "content": "आप क्या क्या कर सकते हो"
+        },
+        {
+            "role": "assistant",
+            "content": "मैं आपकी बात सुन सकता हूँ, सवालों का जवाब दे सकता हूँ, जानकारी खोजने में मदद कर सकता हूँ, आपके आसपास के माहौल पर नजर रख सकता हूँ, और आपकी बात या क्रिया पर प्रतिक्रिया दे सकता हूँ."
+        },
+        {
+            "role": "user",
+            "content": "क्या आप हमें देख सकते हों?"
+        },
+        {
+            "role": "assistant",
+            "content": "हाँ, मैं आप दोनों को देख सकता हूँ। आप मेरे बाईं ओर खड़े हैं।"
+        },
+        {
+            "role": "user",
+            "content": "How many people are standing right now here?"
+        },
+        {
+            "role": "assistant",
+            "content": "There are two people standing right now."
+        },
+        {
+            "role": "user",
+            "content": "Can you tell me who is the second person?"
+        },
+        {
+            "role": "assistant",
+            "content": "I can see two people here. I’ve identified the first one as Aisha, but I don’t have a name for the second person."
+        },
+        {
+            "role": "user",
+            "content": "I can't see it."
+        },
+        {
+            "role": "assistant",
+            "content": "I’m not sure who the other person is. They’re standing in front of me, but I don’t have a name for them."
+        },
+        {
+            "role": "user",
+            "content": "Hey Master, do you recognize me?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, I recognize you as Aisha."
+        },
+        {
+            "role": "user",
+            "content": "Hey master tell me the last two questions I asked you."
+        },
+        {
+            "role": "assistant",
+            "content": "The last two questions you asked were:\n\n1. “Hey Master, do you recognize me?”\n2. “Can you tell me who is the second person?”"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, how can I help you?"
+        },
+        {
+            "role": "user",
+            "content": "Who won the IPL match 2024?"
+        },
+        {
+            "role": "assistant",
+            "content": "The Kolkata Knight Riders won the 2024 IPL final, defeating Sunrisers Hyderabad by eight wickets."
+        },
+        {
+            "role": "user",
+            "content": "Do you recognize me?"
+        },
+        {
+            "role": "assistant",
+            "content": "Yes, I recognize you as Piyusha."
+        },
+        {
+            "role": "user",
+            "content": "Can you tell me how many people are there right now?"
+        },
+        {
+            "role": "assistant",
+            "content": "I can see one person right now."
+        },
+        {
+            "role": "user",
+            "content": "Can you tell me how many people are there right now?"
+        },
+        {
+            "role": "assistant",
+            "content": "I can see two people right now."
+        },
+        {
+            "role": "user",
+            "content": "Uçtu böyle bir günler. Bildiğini denedim."
+        },
+        {
+            "role": "assistant",
+            "content": "Merhaba Aisha, nasıl yardımcı olabilirim?"
+        },
+        {
+            "role": "user",
+            "content": "हे मास्टर क्या तुम मुझे जानते हो"
+        },
+        {
+            "role": "assistant",
+            "content": "हाँ, मैं आपको पहचानता हूँ। आप ऐशा हैं।"
+        },
+        {
+            "role": "user",
+            "content": "Do I sit on the right or left?"
+        },
+        {
+            "role": "assistant",
+            "content": "You are standing on my right."
+        },
+        {
+            "role": "user",
+            "content": "I'm going to go."
+        },
+        {
+            "role": "assistant",
+            "content": "Alright, have a great day!"
+        },
+        {
+            "role": "user",
+            "content": "हैं मास्टर में राइट में हुआ लेफ्ट में"
+        },
+        {
+            "role": "assistant",
+            "content": "आप मेरी बाईं ओर हैं। आपका सिर दाईं ओर झुका हुआ है, और आप केंद्र की ओर देख रहे हैं।"
+        },
+        {
+            "role": "user",
+            "content": "Daya, baya, baya, baya, nyo"
+        },
+        {
+            "role": "assistant",
+            "content": "मुझे समझ नहीं आया, क्या आप कुछ पूछना चाहेंगी?"
+        },
+        {
+            "role": "user",
+            "content": "."
+        },
+        {
+            "role": "assistant",
+            "content": "I'm sorry, I couldn't get a clear answer to that. Could you ask me something else?"
+        }
+    ]
+}

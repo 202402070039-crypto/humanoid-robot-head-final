@@ -1,0 +1,9 @@
+.env
+
+__pycache__/
+*.pyc
+
+recording.wav
+robot_response.wav
+
+.vscode/
