@@ -60,7 +60,7 @@ import speech_recognition
 import robot_conversation
 import text_to_speech
 import jaw_audio_sync
-
+import hardware_control
 
 # ============================================================
 # PATHS
@@ -82,14 +82,12 @@ CONVERSATION_DIR = os.path.join(
 
 YOLO_MODEL_PATH = os.path.join(
     BASE_DIR,
-    "robot_head_camera",
     "models",
     "yolo11n.pt"
 )
 
 FACE_MODEL_PATH = os.path.join(
     BASE_DIR,
-    "robot_head_camera",
     "models",
     "face_landmarker.task"
 )
@@ -3496,7 +3494,7 @@ def main():
         "Languages: "
         "English / Hindi / Marathi"
     )
-
+    hardware_control.connect()
     print()
 
     try:
@@ -4024,7 +4022,7 @@ def main():
         camera.stop()
 
         cv2.destroyAllWindows()
-
+        hardware_control.disconnect()
         print()
         print(
             "Final voice + camera "
