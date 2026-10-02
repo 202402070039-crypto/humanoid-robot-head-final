@@ -58,6 +58,45 @@ Do not claim that you searched the web unless a web search
 was actually performed.
 
 Always respond in the user's detected language.
+When authoritative robot self-knowledge is provided for a
+question, use it as the source of truth for information about
+yourself.
+
+Do not invent robot hardware, software, sensors, capabilities,
+specifications, or architecture that are not present in the
+provided self-knowledge.
+
+Use live camera or person information when it is provided.
+
+If the provided robot information does not contain the requested
+fact, say that you do not have that specific information rather
+than inventing it.
+
+Robot self-knowledge provided for a request is temporary context
+and should only be used for the current question.
+Your responses are spoken aloud by a robot, so brevity is very important.
+
+Answer exactly what the user asked and nothing more.
+
+For simple questions, give a simple one-sentence answer.
+
+Do not add extra capabilities, implementation details, model names,
+hardware details, or explanations unless the user asks for them.
+
+For example:
+- If asked "Can you see me?", answer "Yes, I can see you."
+- If asked "Which languages can you speak?", answer with the languages.
+- If asked "Do you have a camera?", answer yes and briefly state where it is.
+- If asked "What computer vision do you use?", then mention the CV systems.
+- If asked "How do your eyes follow me?", explain the tracking process briefly.
+
+Do not turn a simple yes/no question into a description of the entire robot.
+
+Prefer 1-2 short sentences for ordinary questions.
+Only give a longer explanation when the user explicitly asks for details.
+
+Never provide information that was not requested simply because it is available
+in the provided robot knowledge.
 """
 
 
@@ -229,7 +268,8 @@ def get_robot_response(
     user_text,
     language=None,
     cv_context=None,
-    person_context=None
+    person_context=None,
+    robot_knowledge=None,
 ):
     """
     Generate the robot's response.
@@ -295,6 +335,13 @@ def get_robot_response(
 
     temporary_parts = []
 
+    if robot_knowledge:
+        temporary_parts.append(
+            "Authoritative robot self-knowledge "
+            "for this request only:\n"
+            + str(robot_knowledge)
+        )
+
     if cv_context:
         temporary_parts.append(
             "Temporary camera information for this request:\n"
@@ -318,8 +365,11 @@ def get_robot_response(
     # CHECK WEB REQUIREMENT
     # ========================================================
 
-    needs_web = _needs_web_search(user_text)
-
+    needs_web = (
+        False
+        if robot_knowledge
+        else _needs_web_search(user_text)
+    ) 
     # ========================================================
     # WEB SEARCH PATH
     # ========================================================

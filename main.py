@@ -27,8 +27,9 @@ COMPUTER VISION:
 - Person position information for AI
 
 IMPORTANT:
-- Servo control is NOT included yet.
-- MQTT is NOT included yet.
+- Eye/neck servo control is driven by camera face position.
+- Jaw servo remains driven by audio amplitude.
+- MQTT is used for all four servo commands.
 - Camera preview is kept for testing.
 - Camera processing continues in background while voice is active.
 - Robot-relative LEFT/RIGHT mapping is corrected for the mirrored preview.
@@ -61,7 +62,7 @@ import robot_conversation
 import text_to_speech
 import jaw_audio_sync
 import hardware_control
-
+import robot_self_knowledge
 # ============================================================
 # PATHS
 # ============================================================
@@ -154,6 +155,191 @@ TILT_DEADZONE = 8.0
 
 
 # ============================================================
+# SERVO CONTROL - CAMERA TRACKING
+# ============================================================
+#
+# Camera tracking uses:
+#   MediaPipe face center
+#       -> normalized position error
+#       -> EMA face smoothing
+#       -> constant-speed servo movement
+#
+# Jaw is NOT controlled here. jaw_audio_sync remains responsible
+# for jaw movement during speech.
+#
+# Eye calibration:
+#   Horizontal: 45 RIGHT / 90 CENTER / 135 LEFT
+#   Vertical:   90 UP / 135 CENTER / 180 DOWN
+#
+# Neck:
+#   90 CENTER / 180 currently established safe end.
+#   The direction is isolated in NECK_IMAGE_RIGHT_SIGN because
+#   the physical neck direction must be verified on the assembled
+#   mechanism.
+# ============================================================
+
+SERVO_CONTROL_INTERVAL = 0.05
+
+EYE_H_MIN = 45.0
+EYE_H_CENTER = 90.0
+EYE_H_MAX = 135.0
+
+EYE_V_MIN = 90.0
+EYE_V_CENTER = 135.0
+EYE_V_MAX = 180.0
+
+NECK_MIN = 0.0
+NECK_CENTER = 90.0
+NECK_MAX = 180.0
+
+# Based on the previous neck test, increasing angle follows
+# image-right. Change to -1.0 only after physical verification.
+NECK_IMAGE_RIGHT_SIGN = 1.0
+
+SERVO_DEADZONE = 0.07
+
+# ============================================================
+# STABLE FACE TRACKING
+# ============================================================
+# The camera is mounted in the moving head. A direct
+# face-X -> neck-angle mapping creates a feedback loop:
+# neck moves -> camera view changes -> detected face moves ->
+# neck is commanded again. The controller below therefore uses
+# hierarchical tracking and incremental neck motion.
+#
+# FIX NOTES (root causes addressed by the values/logic below):
+#   1. Two-point eye oscillation was caused by recomputing the eye
+#      target every tick with no confirmation, and by force-snapping
+#      the horizontal eye target every single tick while the neck was
+#      engaged instead of only once, at the hand-off transition.
+#   2. Unwanted vertical motion was caused by not accounting for the
+#      fact that neck (and eye) rotation itself shifts the face's
+#      apparent Y position in frame (parallax from the moving camera).
+#   3. Overshoot/"whip" past the face on one side only was caused by
+#      the original neck hand-off condition being ONE-SIDED. The
+#      symmetric, head-relative check below (see note 4) also fixes
+#      this, since it is identical for both directions by construction.
+#   4. The neck displaying "hand-off ACTIVE" repeatedly while barely
+#      moving, and the eyes visibly reaching center BEFORE the neck
+#      caught up (looking like two separate sequential actions instead
+#      of one simultaneous motion), were both caused by the same root
+#      issue: the camera is mounted INSIDE THE EYE, not just the neck.
+#      When the eyes recenter, the camera physically swings too -- so
+#      the image-based error signal collapses almost immediately from
+#      the eye's own motion, not from the neck actually closing the
+#      gap. That made the controller think the target was reached and
+#      release the neck long before it had moved far, then re-engage
+#      moments later as the true (uncompensated) error reappeared --
+#      exactly the ACTIVE/RELEASED flicker seen in testing.
+#
+#      FIX: the neck engage/release decision now uses a HEAD-RELATIVE
+#      angle -- current eye deflection from center PLUS the remaining
+#      image-space offset -- instead of the raw image position alone.
+#      This total stays accurate no matter where the eyes currently
+#      are pointed, because as the eyes move toward center the image
+#      offset grows by the same amount the eye deflection shrinks.
+#      The eyes are also given a slower, dedicated recenter speed
+#      (EYE_RECENTER_SPEED) during hand-off instead of their normal
+#      fast tracking speed, so the eye-return and the neck motion
+#      finish at roughly the same time and read as one continuous
+#      motion instead of two sequential ones.
+
+FACE_EMA_ALPHA_X = 0.20
+FACE_EMA_ALPHA_Y = 0.12
+
+# Face-position hysteresis, kept for compatibility with any other
+# module that references these. The active pixel-noise filtering is
+# done via EYE_TARGET_HYSTERESIS_DEGREES / EYE_TARGET_V_HYSTERESIS_DEGREES
+# below, which operate in servo-degree space after mapping.
+EYE_HORIZONTAL_HYSTERESIS_PIXELS = 14.0
+EYE_VERTICAL_HYSTERESIS_PIXELS = 26.0
+EYE_CONFIRM_FRAMES = 4
+
+# While the neck is rotating -- and for a short cool-down window after
+# it stops -- camera-induced apparent motion must not move the servos.
+# This is applied to BOTH axes now, not just vertical, because the
+# neck's own rotation also disturbs the horizontal reading briefly.
+NECK_VERTICAL_HOLD_SECONDS = 0.40
+NECK_HORIZONTAL_HOLD_SECONDS = 0.25
+
+# Eyes track first. The neck starts only when the face's HEAD-RELATIVE
+# angle (eye deflection + remaining image offset -- see FIX NOTE 4
+# above) exceeds NECK_START_DEG, and releases once that same
+# compensated angle falls back inside NECK_STOP_DEG. Both are true
+# degrees, symmetric for either direction, and immune to the eyes'
+# own recentering motion.
+NECK_START_DEG = 18.0   # engage once compensated head-relative angle exceeds this
+NECK_STOP_DEG = 5.0     # release once it falls back inside this (~5 degree tolerance)
+NECK_FULL_SPEED_DEG = 45.0  # compensated angle at which the neck reaches max speed
+NECK_CONFIRM_FRAMES = 6
+NECK_RELEASE_FRAMES = 8
+
+# Extra eye-target hysteresis. The eyes do not chase every tiny change
+# in the detected face position -- a candidate target must persist in
+# the same direction for EYE_CONFIRM_FRAMES before it is accepted.
+EYE_TARGET_HYSTERESIS_DEGREES = 4.0
+EYE_TARGET_V_HYSTERESIS_DEGREES = 5.0
+
+# Neck speed: proportional to the remaining compensated error, updated
+# EVERY servo loop tick (not throttled to a slower command interval).
+# A fixed command interval (e.g. 10 Hz) makes the neck visibly "step"
+# from one commanded position to the next between updates instead of
+# gliding continuously -- this was the "hanging on one increment point
+# then another" symptom. Updating every tick at the full loop rate
+# removes that stepping.
+NECK_TRACK_SPEED_MIN = 3.0
+NECK_TRACK_SPEED_MAX = 8.0
+
+# DERIVATIVE BRAKING (ported from the version that tracked smoothly):
+# instead of relying only on a fixed speed ramp, measure how fast the
+# compensated error is ALREADY shrinking each tick. If it's closing in
+# quickly (the neck + face motion is naturally converging), cut speed
+# further so the neck doesn't sail past the stop point and have to
+# correct back -- this is what removes the "overmoves, then takes 2-3
+# rounds to settle" pattern for larger movements.
+NECK_ERROR_RATE_FAST_DEG = 20.0   # deg/sec closing rate -> heavy brake
+NECK_ERROR_RATE_MED_DEG = 8.0     # deg/sec closing rate -> light brake
+NECK_BRAKE_FAST_FACTOR = 0.55
+NECK_BRAKE_MED_FACTOR = 0.78
+
+# Normal small-movement eye tracking speed (neck NOT engaged).
+EYE_MAX_SPEED = 65.0
+
+# Dedicated, slower speed used ONLY while the neck is actively engaged
+# and the eyes are recentering. Deliberately paced close to the neck's
+# typical closing speed (NECK_TRACK_SPEED_MIN..MAX) so the eye-return
+# and the neck rotation finish together instead of the eyes visibly
+# arriving first.
+EYE_RECENTER_SPEED = 6.0
+
+NECK_RETURN_SPEED = 10.0
+NECK_MAX_SPEED = 18.0
+
+NECK_ACTIVATION = 0.20
+
+# FACE_STALE_TIMEOUT: data newer than this is treated as "fresh" and is
+# actively used to steer the eyes/neck.
+#
+# FACE_LOST_RESET_TIMEOUT: only once data is OLDER than this do we treat
+# the face as genuinely gone and reset (release the neck, recenter the
+# eyes, clear the smoothing filters). Between the two timeouts the data
+# is "stale but not lost yet" -- the controller HOLDS its current state
+# and does nothing, instead of resetting.
+#
+# This gap matters a lot in practice: heavy CPU load elsewhere in the
+# process (STT, LLM calls, TTS generation, jaw sync, face recognition,
+# YOLO) can delay the CV thread's landmark updates well past a tight
+# stale timeout even though the face never actually left the frame. A
+# single timeout that resets on every stale tick causes the neck
+# hand-off to restart from zero constantly -- it never accumulates
+# enough continuous engagement to actually move, and the eyes keep
+# re-snapping to a fresh (unsmoothed) position every time, which looks
+# like drifting/wandering even while the person is standing still.
+FACE_STALE_TIMEOUT = 0.45
+FACE_LOST_RESET_TIMEOUT = 1.50
+
+
+# ============================================================
 # TARGET TRACKING
 # ============================================================
 
@@ -216,6 +402,7 @@ cv_targets = []
 cv_objects = []
 
 cv_face_data = None
+cv_face_timestamp = 0.0
 
 cv_selected_target = None
 
@@ -253,6 +440,19 @@ running = True
 voice_processing = False
 
 enrollment_active = False
+
+
+# ============================================================
+# SERVO STATE
+# ============================================================
+
+servo_control_running = True
+
+servo_lock = threading.Lock()
+
+current_eye_horizontal = EYE_H_CENTER
+current_eye_vertical = EYE_V_CENTER
+current_neck = NECK_CENTER
 
 
 # ============================================================
@@ -1413,6 +1613,7 @@ def cv_processing_thread():
     global cv_targets
     global cv_objects
     global cv_face_data
+    global cv_face_timestamp
     global cv_selected_target
     global cv_fps
 
@@ -1575,6 +1776,10 @@ def cv_processing_thread():
                                 result
                             )
 
+                            cv_face_timestamp = (
+                                time.monotonic()
+                            )
+
                 except Exception as e:
 
                     print(
@@ -1625,6 +1830,589 @@ def cv_processing_thread():
         )
 
 
+# ============================================================
+# ============================================================
+# CAMERA → SERVO CONTROL
+# ============================================================
+# ============================================================
+
+def clamp(value, minimum, maximum):
+    return max(minimum, min(maximum, value))
+
+
+def move_toward(current, target, max_step):
+    """Move toward target without overshooting, one step-limited tick at a time."""
+    delta = target - current
+    if abs(delta) <= max_step:
+        return target
+    return current + max_step if delta > 0 else current - max_step
+
+
+def face_to_eye_horizontal(face_x, frame_width):
+    """Map stable image X to calibrated horizontal eye angle."""
+    x = clamp(face_x / float(frame_width), 0.0, 1.0)
+    error = x - 0.5
+    center_zone = 0.06
+
+    if abs(error) <= center_zone:
+        return EYE_H_CENTER
+
+    if error > 0:
+        usable = (error - center_zone) / (0.5 - center_zone)
+    else:
+        usable = (error + center_zone) / (0.5 - center_zone)
+
+    return clamp(
+        EYE_H_CENTER + usable * 45.0,
+        EYE_H_MIN,
+        EYE_H_MAX
+    )
+
+
+def face_to_eye_vertical(face_y, frame_height):
+    """Map stable image Y to calibrated vertical eye angle."""
+    y = clamp(face_y / float(frame_height), 0.0, 1.0)
+    error = y - 0.5
+    center_zone = 0.10
+
+    if abs(error) <= center_zone:
+        return EYE_V_CENTER
+
+    if error > 0:
+        usable = (error - center_zone) / (0.5 - center_zone)
+    else:
+        usable = (error + center_zone) / (0.5 - center_zone)
+
+    return clamp(
+        EYE_V_CENTER + usable * 45.0,
+        EYE_V_MIN,
+        EYE_V_MAX
+    )
+
+
+def camera_servo_control_thread():
+    """
+    Hierarchical, symmetric eyes -> neck -> eyes face tracking controller.
+
+    Tracking sequence:
+        1. Eyes follow the face on both axes, but a new target is only
+           accepted after it clears a hysteresis band AND persists for
+           several consecutive frames (EYE_CONFIRM_FRAMES). This is what
+           stops single-frame detector noise from producing the
+           left<->right two-point oscillation.
+        2. When the horizontal error grows large enough on EITHER side
+           (symmetric bands, not a one-sided check), the neck activates.
+        3. At the moment of hand-off (a single discrete event, not every
+           tick) the horizontal eye target is set to center and held
+           there only while the neck is actively engaged.
+        4. The neck moves in small incremental steps, at a reduced
+           command rate, with its speed slewed rather than jumping --
+           this removes the overshoot "whip" past the face.
+        5. Both eye axes are held (frozen) during neck motion and for a
+           short cool-down window afterward, because neck rotation
+           itself shifts the face's apparent position in frame (the
+           camera is mounted on the moving head).
+        6. Once the face returns inside the inner release band for
+           enough consecutive frames, the neck disengages and the eyes
+           re-acquire the current face position once.
+
+    Jaw remains completely independent and audio controlled.
+    """
+    global current_eye_horizontal
+    global current_eye_vertical
+    global current_neck
+    global servo_control_running
+
+    # ------------------------------------------------------------
+    # Filtered face position
+    # ------------------------------------------------------------
+    filtered_x = None
+    filtered_y = None
+
+    # Eye targets only change when a candidate has been confirmed.
+    stable_eye_target_h = EYE_H_CENTER
+    stable_eye_target_v = EYE_V_CENTER
+
+    # Candidate counters stop one/two-frame detector noise from
+    # changing the accepted target.
+    h_candidate = None
+    h_candidate_count = 0
+    v_candidate = None
+    v_candidate_count = 0
+
+    # ------------------------------------------------------------
+    # Neck state machine (symmetric for both directions)
+    # ------------------------------------------------------------
+    neck_active = False
+    neck_direction = 0          # +1 or -1, set once at hand-off
+    neck_start_count = 0
+    neck_release_count = 0
+
+    # Tracks the previous tick's compensated error so neck motion can
+    # apply derivative braking (slow down when the gap is already
+    # closing quickly, instead of driving in at full speed).
+    previous_compensated_error = None
+    neck_last_motion_time = time.monotonic()
+
+    last_sent_h = None
+    last_sent_v = None
+    last_sent_neck = None
+    previous_time = time.monotonic()
+
+    print(
+        "Camera servo-control thread started "
+        "(symmetric hierarchical eyes -> neck -> eyes tracking)."
+    )
+
+    while running and servo_control_running:
+        loop_start = time.monotonic()
+
+        try:
+            now = time.monotonic()
+
+            dt = clamp(
+                now - previous_time,
+                0.001,
+                0.10
+            )
+            previous_time = now
+
+            with cv_state_lock:
+                face_data = cv_face_data
+                face_timestamp = cv_face_timestamp
+
+            have_data = (
+                face_data is not None
+                and face_timestamp > 0
+            )
+            data_age = (now - face_timestamp) if have_data else None
+
+            # "Fresh": recent enough to actively steer from this tick.
+            data_fresh = (
+                have_data and data_age <= FACE_STALE_TIMEOUT
+            )
+
+            # "Confirmed lost": no update for a genuinely long stretch --
+            # only NOW do we release the neck and recenter the eyes.
+            confirmed_lost = (
+                not have_data or data_age > FACE_LOST_RESET_TIMEOUT
+            )
+
+            # In between fresh and confirmed_lost the data is merely
+            # stale (a brief CV/CPU hiccup). We deliberately do nothing
+            # in that window -- see FACE STALE (HOLD) branch below.
+
+            # Axes are held (frozen against new targets) while the neck
+            # is active and for a short cool-down window afterward, since
+            # neck rotation itself moves the face in-frame.
+            neck_recently_moving_h = (
+                now - neck_last_motion_time
+                < NECK_HORIZONTAL_HOLD_SECONDS
+            )
+            neck_recently_moving_v = (
+                now - neck_last_motion_time
+                < NECK_VERTICAL_HOLD_SECONDS
+            )
+
+            # ========================================================
+            # FACE DATA FRESH -- actively track
+            # ========================================================
+            if data_fresh:
+                raw_x, raw_y = face_data["center"]
+                raw_x = float(raw_x)
+                raw_y = float(raw_y)
+
+                if filtered_x is None:
+                    filtered_x = raw_x
+                    filtered_y = raw_y
+                    stable_eye_target_h = face_to_eye_horizontal(
+                        filtered_x, FRAME_WIDTH
+                    )
+                    stable_eye_target_v = face_to_eye_vertical(
+                        filtered_y, FRAME_HEIGHT
+                    )
+                    h_candidate = None
+                    h_candidate_count = 0
+                    v_candidate = None
+                    v_candidate_count = 0
+                else:
+                    filtered_x = (
+                        FACE_EMA_ALPHA_X * raw_x
+                        + (1.0 - FACE_EMA_ALPHA_X) * filtered_x
+                    )
+                    filtered_y = (
+                        FACE_EMA_ALPHA_Y * raw_y
+                        + (1.0 - FACE_EMA_ALPHA_Y) * filtered_y
+                    )
+
+                desired_h = face_to_eye_horizontal(
+                    filtered_x, FRAME_WIDTH
+                )
+                desired_v = face_to_eye_vertical(
+                    filtered_y, FRAME_HEIGHT
+                )
+
+                # ====================================================
+                # HORIZONTAL EYE TARGET -- STABLE BUT RESPONSIVE
+                # ====================================================
+                # A new target is only accepted while the neck is NOT
+                # engaged and NOT within its post-motion hold window,
+                # and only after it clears the hysteresis band and
+                # persists in the same direction for EYE_CONFIRM_FRAMES.
+                if not neck_active and not neck_recently_moving_h:
+                    h_error = desired_h - stable_eye_target_h
+
+                    if abs(h_error) >= EYE_TARGET_HYSTERESIS_DEGREES:
+                        if h_candidate is None:
+                            h_candidate = desired_h
+                            h_candidate_count = 1
+                        else:
+                            candidate_delta = desired_h - h_candidate
+                            if candidate_delta * h_error >= 0:
+                                h_candidate = desired_h
+                                h_candidate_count += 1
+                            else:
+                                h_candidate = desired_h
+                                h_candidate_count = 1
+
+                        if h_candidate_count >= EYE_CONFIRM_FRAMES:
+                            stable_eye_target_h = h_candidate
+                            h_candidate = None
+                            h_candidate_count = 0
+                    else:
+                        h_candidate = None
+                        h_candidate_count = 0
+                else:
+                    h_candidate = None
+                    h_candidate_count = 0
+
+                # ====================================================
+                # VERTICAL EYE TARGET
+                # ====================================================
+                if not neck_active and not neck_recently_moving_v:
+                    v_error = desired_v - stable_eye_target_v
+
+                    if abs(v_error) >= EYE_TARGET_V_HYSTERESIS_DEGREES:
+                        if v_candidate is None:
+                            v_candidate = desired_v
+                            v_candidate_count = 1
+                        else:
+                            candidate_delta = desired_v - v_candidate
+                            if candidate_delta * v_error >= 0:
+                                v_candidate = desired_v
+                                v_candidate_count += 1
+                            else:
+                                v_candidate = desired_v
+                                v_candidate_count = 1
+
+                        if v_candidate_count >= EYE_CONFIRM_FRAMES:
+                            stable_eye_target_v = v_candidate
+                            v_candidate = None
+                            v_candidate_count = 0
+                    else:
+                        v_candidate = None
+                        v_candidate_count = 0
+                else:
+                    v_candidate = None
+                    v_candidate_count = 0
+
+                # ========================================================
+                # NECK HAND-OFF DECISION -- HEAD-RELATIVE, SYMMETRIC
+                # ========================================================
+                # raw_angle_deg is the face's offset from image-center
+                # converted to the same degree scale as the eye servo
+                # (so a full-frame edge maps to the eye's own +/-45
+                # degree range). eye_deflection_deg is how far the eye
+                # is CURRENTLY holding away from its center to look at
+                # the face.
+                #
+                # compensated_error_deg = eye_deflection_deg + raw_angle_deg
+                # is the face's TRUE angle relative to the head/neck,
+                # independent of where the eye is currently pointed.
+                # This is what fixes the "hand-off fires repeatedly but
+                # the neck barely moves" bug: previously the decision
+                # used raw_angle_deg alone, which collapses toward zero
+                # the instant the eyes recenter (because the camera is
+                # mounted in the eye and swings with it) -- making the
+                # controller think the target was reached when really
+                # only the eye moved, not the neck.
+                normalized_x = (
+                    clamp(filtered_x / float(FRAME_WIDTH), 0.0, 1.0)
+                    - 0.5
+                )
+                eye_half_range = (EYE_H_MAX - EYE_H_CENTER)
+                raw_angle_deg = normalized_x * 2.0 * eye_half_range
+
+                eye_deflection_deg = (
+                    current_eye_horizontal - EYE_H_CENTER
+                )
+
+                compensated_error_deg = (
+                    eye_deflection_deg + raw_angle_deg
+                )
+                abs_compensated_error = abs(compensated_error_deg)
+
+                if not neck_active:
+                    if abs_compensated_error >= NECK_START_DEG:
+                        neck_start_count += 1
+                    else:
+                        neck_start_count = 0
+
+                    if neck_start_count >= NECK_CONFIRM_FRAMES:
+                        neck_active = True
+                        neck_start_count = 0
+                        neck_release_count = 0
+                        previous_compensated_error = None
+
+                        # Direction is captured ONCE, at hand-off, from
+                        # the sign of the compensated error -- it is not
+                        # re-read every tick while the neck is moving.
+                        neck_direction = (
+                            1 if compensated_error_deg > 0 else -1
+                        ) * NECK_IMAGE_RIGHT_SIGN
+                        neck_direction = 1 if neck_direction > 0 else -1
+
+                        # CRITICAL HAND-OFF (single event, not per-tick):
+                        # once the neck takes over, stop asking the eyes
+                        # to chase the side position -- they become a
+                        # center-seeking stage while the neck follows,
+                        # at EYE_RECENTER_SPEED (paced with the neck, not
+                        # the fast normal tracking speed).
+                        stable_eye_target_h = EYE_H_CENTER
+                        h_candidate = None
+                        h_candidate_count = 0
+
+                        print(
+                            "[SERVO] Neck hand-off ACTIVE "
+                            f"(direction={neck_direction}, "
+                            f"compensated_error={compensated_error_deg:.1f} deg) "
+                            "-> eyes recenter"
+                        )
+
+                else:
+                    # Release only after the compensated (head-relative)
+                    # angle has returned well inside the inner band for
+                    # several consecutive frames -- hysteresis prevents
+                    # engage/release flicker right at the boundary, and
+                    # using the compensated angle (not raw image
+                    # position) means the eyes recentering can no longer
+                    # trigger a false release on its own.
+                    if abs_compensated_error <= NECK_STOP_DEG:
+                        neck_release_count += 1
+                    else:
+                        neck_release_count = 0
+
+                    if neck_release_count >= NECK_RELEASE_FRAMES:
+                        neck_active = False
+                        neck_direction = 0
+                        neck_release_count = 0
+                        neck_start_count = 0
+                        previous_compensated_error = None
+                        h_candidate = None
+                        h_candidate_count = 0
+
+                        # Re-acquire the eye target once, from the
+                        # current filtered face position.
+                        stable_eye_target_h = face_to_eye_horizontal(
+                            filtered_x, FRAME_WIDTH
+                        )
+
+                        print(
+                            "[SERVO] Neck hand-off RELEASED -> eyes resume"
+                        )
+
+                # ========================================================
+                # NECK MOTION -- CONTINUOUS, EVERY TICK, SYMMETRIC
+                # ========================================================
+                # Updated every servo loop tick (not throttled to a
+                # slower fixed command interval) so the motion glides
+                # instead of visibly stepping. Speed is proportional to
+                # the remaining compensated error, then damped further
+                # by how fast that error is ALREADY closing (derivative
+                # braking) -- if the gap is shrinking quickly on its
+                # own, ease off instead of driving in at full speed and
+                # needing to correct back afterward.
+                if (
+                    neck_active
+                    and neck_direction != 0
+                    and abs_compensated_error > NECK_STOP_DEG
+                ):
+                    motion_error = clamp(
+                        (abs_compensated_error - NECK_STOP_DEG)
+                        / max(1e-6, (NECK_FULL_SPEED_DEG - NECK_STOP_DEG)),
+                        0.0,
+                        1.0
+                    )
+
+                    neck_speed = (
+                        NECK_TRACK_SPEED_MIN
+                        + motion_error
+                        * (NECK_TRACK_SPEED_MAX - NECK_TRACK_SPEED_MIN)
+                    )
+
+                    if previous_compensated_error is not None:
+                        error_rate = (
+                            previous_compensated_error
+                            - abs_compensated_error
+                        ) / dt
+
+                        if error_rate > NECK_ERROR_RATE_FAST_DEG:
+                            neck_speed *= NECK_BRAKE_FAST_FACTOR
+                        elif error_rate > NECK_ERROR_RATE_MED_DEG:
+                            neck_speed *= NECK_BRAKE_MED_FACTOR
+
+                    neck_speed = clamp(
+                        neck_speed,
+                        NECK_TRACK_SPEED_MIN,
+                        NECK_TRACK_SPEED_MAX
+                    )
+
+                    neck_step = neck_speed * dt
+
+                    with servo_lock:
+                        old_neck = current_neck
+                        current_neck = clamp(
+                            current_neck + neck_step * neck_direction,
+                            NECK_MIN,
+                            NECK_MAX
+                        )
+
+                    if abs(current_neck - old_neck) > 0.001:
+                        neck_last_motion_time = now
+
+                        if current_neck >= NECK_MAX:
+                            print(
+                                "[SERVO] Neck reached maximum "
+                                "safe angle."
+                            )
+                        elif current_neck <= NECK_MIN:
+                            print(
+                                "[SERVO] Neck reached minimum "
+                                "safe angle."
+                            )
+
+                previous_compensated_error = abs_compensated_error
+
+            # ============================================================
+            # FACE DATA NOT FRESH -- either a brief hiccup (HOLD) or a
+            # genuinely lost face (RESET)
+            # ============================================================
+            elif confirmed_lost:
+                # FACE CONFIRMED LOST: no update for FACE_LOST_RESET_TIMEOUT.
+                # Only now do we actually release the neck and recenter.
+                filtered_x = None
+                filtered_y = None
+                previous_compensated_error = None
+
+                h_candidate = None
+                h_candidate_count = 0
+                v_candidate = None
+                v_candidate_count = 0
+
+                neck_active = False
+                neck_direction = 0
+                neck_start_count = 0
+                neck_release_count = 0
+
+                stable_eye_target_h = EYE_H_CENTER
+                stable_eye_target_v = EYE_V_CENTER
+
+            else:
+                # FACE STALE BUT NOT YET LOST: a transient CV/CPU gap
+                # (very common while STT/LLM/TTS are running on the same
+                # machine). Deliberately do nothing here -- keep every
+                # filter, target, and neck state exactly as it was. The
+                # servo movement step below will simply keep commanding
+                # the same target it already had, so nothing visibly
+                # moves or resets. This is what stops the "hand-off
+                # fires repeatedly but the neck barely moves" pattern.
+                pass
+
+            # ============================================================
+            # PHYSICAL SERVO MOVEMENT
+            # ============================================================
+            # dt was already computed once at the top of this tick.
+
+            # Horizontal eyes use a slower, dedicated recenter speed
+            # while the neck is actively engaged, paced closer to the
+            # neck's own closing speed -- this is what makes the eye
+            # return and the neck rotation read as one simultaneous
+            # motion instead of the eyes visibly finishing first.
+            eye_step_h = (
+                EYE_RECENTER_SPEED if neck_active else EYE_MAX_SPEED
+            ) * dt
+            eye_step_v = EYE_MAX_SPEED * dt
+            neck_return_step = NECK_RETURN_SPEED * dt
+
+            with servo_lock:
+                current_eye_horizontal = move_toward(
+                    current_eye_horizontal,
+                    stable_eye_target_h,
+                    eye_step_h
+                )
+
+                current_eye_vertical = move_toward(
+                    current_eye_vertical,
+                    stable_eye_target_v,
+                    eye_step_v
+                )
+
+                # Return the neck only when the face is CONFIRMED lost
+                # (not merely stale). A brief CV/CPU hiccup must never
+                # cause an automatic center reset.
+                if confirmed_lost:
+                    current_neck = move_toward(
+                        current_neck,
+                        NECK_CENTER,
+                        neck_return_step
+                    )
+
+                send_h = int(round(clamp(
+                    current_eye_horizontal,
+                    EYE_H_MIN,
+                    EYE_H_MAX
+                )))
+
+                send_v = int(round(clamp(
+                    current_eye_vertical,
+                    EYE_V_MIN,
+                    EYE_V_MAX
+                )))
+
+                send_neck = int(round(clamp(
+                    current_neck,
+                    NECK_MIN,
+                    NECK_MAX
+                )))
+
+            # Publish only when the integer command changes.
+            if send_h != last_sent_h:
+                hardware_control.send_eye_horizontal(send_h)
+                last_sent_h = send_h
+
+            if send_v != last_sent_v:
+                hardware_control.send_eye_vertical(send_v)
+                last_sent_v = send_v
+
+            if send_neck != last_sent_neck:
+                hardware_control.send_neck(send_neck)
+                last_sent_neck = send_neck
+
+        except Exception as e:
+            print("[SERVO] Camera servo-control error:", e)
+
+        elapsed = time.monotonic() - loop_start
+        time.sleep(
+            max(
+                0.005,
+                SERVO_CONTROL_INTERVAL - elapsed
+            )
+        )
+
+    print("Camera servo-control thread stopped.")
+
+
+# ============================================================
 # ============================================================
 # GET CV STATE FOR AI
 # ============================================================
@@ -3462,6 +4250,21 @@ def main():
 
     recognition_thread.start()
 
+    # --------------------------------------------------------
+    # Camera → Eye/Neck servo control
+    # --------------------------------------------------------
+
+    # Connect the active MQTT controller.
+    # jaw_audio_sync also uses hardware_control.
+    hardware_control.connect()
+
+    servo_thread = threading.Thread(
+        target=camera_servo_control_thread,
+        daemon=True
+    )
+
+    servo_thread.start()
+
     time.sleep(
         2.0
     )
@@ -3494,7 +4297,6 @@ def main():
         "Languages: "
         "English / Hindi / Marathi"
     )
-    hardware_control.connect()
     print()
 
     try:
@@ -3840,6 +4642,48 @@ def main():
                 get_current_person()
             )
 
+            # -------------------------------------------------
+            # ROBOT SELF-KNOWLEDGE ROUTING
+            # -------------------------------------------------
+
+            self_route = (
+                robot_self_knowledge
+                .classify_question(
+                    user_text
+                )
+            )
+
+            self_categories = (
+                self_route.get(
+                    "categories",
+                    []
+                )
+            )
+
+            self_knowledge = ""
+
+            if self_route.get(
+                "is_self",
+                False
+            ):
+                self_knowledge = (
+                    robot_self_knowledge
+                    .get_knowledge(
+                        self_categories
+                    )
+                )
+
+            print(
+                "[SELF ROUTER]",
+                self_route
+            )
+
+            if self_knowledge:
+                print(
+                    "[SELF ROUTER] Categories:",
+                    self_categories
+                )
+
             fields = classify_cv_request(
                 user_text
             )
@@ -3916,7 +4760,8 @@ def main():
                     user_text=user_text,
                     language=language,
                     cv_context=cv_context,
-                    person_context=person_context
+                    person_context=person_context,
+                    robot_knowledge=self_knowledge
                 )
             )
 
@@ -4011,6 +4856,8 @@ def main():
 
         running = False
 
+        servo_control_running = False
+
         voice_processing = False
 
         enrollment_active = False
@@ -4022,7 +4869,15 @@ def main():
         camera.stop()
 
         cv2.destroyAllWindows()
-        hardware_control.disconnect()
+
+        try:
+            hardware_control.disconnect()
+        except Exception as e:
+            print(
+                "Hardware-control disconnect error:",
+                e
+            )
+
         print()
         print(
             "Final voice + camera "
